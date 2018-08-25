@@ -16,11 +16,7 @@ class capture_class( object ):
 
 class class_test( msec_logger.LogHelper ):
     def __init__(self):
-        print("start class_test.__init__()")
-        msec_logger.LogHelper(self)
-        print("back to class_test.__init__()")
-        print(dir(self))
-        print("end class_test.__init__()")
+        msec_logger.LogHelper.__init__(self)
 
 
 class Test01(TestCase):

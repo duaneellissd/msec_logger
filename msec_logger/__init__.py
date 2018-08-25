@@ -111,70 +111,70 @@ class mSecLogger_Base( object ):
         self.fp_console = None
         self.fp_file = None
         self.column = 0
-        self._disable_quasi_stack = 0
-        self._first_log = True
+        self.__disable_quasi_stack = 0
+        self.__first_log = True
         self.dup2syslog = False
-        self._current_line = ''
+        self.__current_line = ''
         atexit.register( self.close_logfile )
 
     def disable_push( self ):
         '''
         Temporarily stop logging...
         '''
-        self._disable_quasi_stack += 1
+        self.__disable_quasi_stack += 1
         # help catch runaways...
-        assert( self._disable_quasi_stack < 50 )
+        assert( self.__disable_quasi_stack < 50 )
 
     def disable_pop( self ):
         '''
         Re-enable logging after a disable push.
         '''
-        self._disable_quasi_stack -= 1
-        assert( self._disable_quasi_stack >= 0 )
+        self.__disable_quasi_stack -= 1
+        assert( self.__disable_quasi_stack >= 0 )
 
-    def _write_raw( self, s, timestamp=False ):
+    def __write_raw( self, s, timestamp=False ):
         # internal function - not public
         # Tabs have been expanded.. newlines handled...
         # We just write to the places we should write
-        if self._first_log:
+        if self.__first_log:
             # do not repeat.
-            self._first_log = False
-            self._identify()
+            self.__first_log = False
+            self.__identify()
 
         # do we write to syslog?
         if (not timestamp) and self.dup2syslog:
             if s == '\n':
-                syslog.syslog( self._current_line )
-                self._current_line = ''
+                syslog.syslog( self.__current_line )
+                self.__current_line = ''
             else:
-                self._current_line += s
+                self.__current_line += s
                 
         self.column += len(s)
-        if self._disable_quasi_stack == 0:
+        if self.__disable_quasi_stack == 0:
             for fp in (self.fp_console, self.fp_file):
                 if fp:
                     fp.write(s)
 
-    def _expand_tabs(self,s):
+    def __expand_tabs(self,s):
         # internal function - not public
         # Expand tabs to TAB_WIDTH.
         assert( isinstance(s,str) )
 
         if self.column == 0:
-            self._write_timestamp()
+            self.__write_timestamp()
             
         parts = s.split('\t')
         last_element  = parts.pop()
         for p in parts:
-            self._write_raw(p)
+            self.__write_raw(p)
             n = (TAB_WIDTH - self.column) % TAB_WIDTH
             if n:
-                self._write_raw( ' ' * n )
+                self.__write_raw( ' ' * n )
         if len(last_element) == 0:
             # string ended with a tab, nothing to do
             pass
         else:
-            self._write_raw( last_element )
+            self.__write_raw( last_element )
 
         
     def open_console( self ):
@@ -234,9 +234,9 @@ class mSecLogger_Base( object ):
                 # No clue what this is
                 pass
         # startup banner
-        self._identify('Filename: %s' % txt_filename)
+        self.__identify('Filename: %s' % txt_filename)
 
-    def _write_timestamp(self):
+    def __write_timestamp(self):
         # internal function, not public
         # Log timestamp in seconds & milliseconds.
         # each line in the log file looks like this example
@@ -248,7 +248,7 @@ class mSecLogger_Base( object ):
         msecs = int((msecs - secs) * 1000.0)
         s = "%4d.%03d | " % (secs,msecs)
         # This is a timestamp..
-        self._write_raw(s,True)
+        self.__write_raw(s,True)
         
     def write( self, msg ):
         '''
@@ -268,7 +268,7 @@ class mSecLogger_Base( object ):
         newline = msg.rfind('\n')
         if newline < 0:
             # none, just write it
-            self._expand_tabs( msg )
+            self.__expand_tabs( msg )
             return
 
         parts = msg.split('\n')
@@ -276,15 +276,15 @@ class mSecLogger_Base( object ):
 
         for p in parts:
             if len(p) > 0:
-                self._expand_tabs(p)
-            self._write_raw('\n')
-            self._column = 0
+                self.__expand_tabs(p)
+            self.__write_raw('\n')
+            self.__column = 0
         if len(last) == 0:
             # string ended in a newline, do nothing
             pass
         else:
             # string did nto end in a newline
-            self._expand_tabs(p)
+            self.__expand_tabs(p)
         
     def write_ln(self, msg):
         '''
@@ -297,7 +297,7 @@ class mSecLogger_Base( object ):
             return
         
         self.write( msg )
-        self._write_raw( '\n' )
+        self.__write_raw( '\n' )
         self.column = 0
 
     def wallclock( self ):
@@ -306,9 +306,9 @@ class mSecLogger_Base( object ):
         '''
         self.write_ln( "Now(wallclock):  %s" % time.strftime("%y-%m-%d %H:%M:%S"))
         
-    def _identify(self, msg=None):
+    def __identify(self, msg=None):
         # Internal function to write a log header
-        self._first_log = False
+        self.__first_log = False
         self.write_ln( "#========================================")
         self.write_ln( "# started: %s" % time.strftime("%y-%m-%d %H:%M:%S"))
         self.write_ln( "# machine: %s" % platform.node())
@@ -334,33 +334,26 @@ class LogHelper(object):
     '''
     
     def __init__( self, logger = common_mSecLogger ):
-        print("")
-        print("start of LogHelper.__init__()")
-        print("In loghelp init")
-        self._debug_log_enabled = True
-        self._logger = logger
-        print("done loghelp init")
-        print('dirself: %s' % dir(self))
-        print("end of LogHelper.__init__()")
+        self.__debug_log_enabled = True
+        self.__logger = logger
 
 
     def debug_print( self, msg ):
-        print("in LogHelper.debug_print(), dir: %s" % dir(self))
-        if self._debug_log_enabled and (self._logger != None):
-            self._logger.write_ln(msg)
+        if self.__debug_log_enabled and (self.__logger != None):
+            self.__logger.write_ln(msg)
 
     def debug_write( self, msg ):
-        if self._debug_log_enabled and (self._logger != None):
-            self._logger.write(msg)
+        if self.__debug_log_enabled and (self.__logger != None):
+            self.__logger.write(msg)
 
     def debug_push(self):
-        if self._logger != None:
-            self._logger.disable_push()
+        if self.__logger != None:
+            self.__logger.disable_push()
 
     def debug_pop(self):
-        if self._logger != None:
-            self._logger.disable_pop()
+        if self.__logger != None:
+            self.__logger.disable_pop()
             
     def debug_wallclock( self ):
-        if self._debug_log_enabled and (self._logger != None):
-            self._logger.wallclock()
+        if self.__debug_log_enabled and (self.__logger != None):
+            self.__logger.wallclock()
